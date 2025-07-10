@@ -440,17 +440,20 @@ function App() {
               onMouseOut={e => (e.currentTarget.style.background = '#FF5722')}
               onClick={async () => {
                 try {
+                  // Debug: Check if Stripe key is loaded
+                  console.log('Stripe key loaded:', !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+                  
                   // Track premium conversion attempt
                   if (window.plausible) {
                     window.plausible('Premium Payment Started');
                   }
                   
-                                     // Use your actual Stripe Price ID
-                   const priceId = 'price_1RjSXJRPpCqX9umiVW7UQoHt';
+                  // Use your actual Stripe Price ID
+                  const priceId = 'price_1RjSXJRPpCqX9umiVW7UQoHt';
                   await redirectToCheckout(priceId);
                 } catch (error) {
+                  console.error('Payment error:', error);
                   alert('支付系统暂时不可用，请稍后再试');
-                  console.error('Stripe error:', error);
                 }
               }}
             >
