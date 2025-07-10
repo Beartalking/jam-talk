@@ -413,11 +413,11 @@ function App() {
           }}>
             <h2 style={{ color: '#FF5722', marginBottom: '1rem' }}>🎯 AI Coach Premium</h2>
             <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-              Get personalized coaching, detailed pronunciation analysis, and unlimited practice sessions!
+              获取个性化辅导、详细发音分析和无限练习机会！
             </p>
             <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FF5722' }}>$9.99/month</div>
-              <div style={{ fontSize: '0.9rem', color: '#888' }}>7-day free trial</div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FF5722' }}>$9.99/月</div>
+              <div style={{ fontSize: '0.9rem', color: '#888' }}>7天免费试用</div>
             </div>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <button
@@ -439,7 +439,7 @@ function App() {
                   alert('This is a demo - no actual payment required!');
                 }}
               >
-                Start Free Trial
+                开始免费试用
               </button>
               <button
                 style={{
@@ -453,7 +453,7 @@ function App() {
                 }}
                 onClick={() => setShowPaywall(false)}
               >
-                Maybe Later
+                稍后再说
               </button>
             </div>
           </div>
