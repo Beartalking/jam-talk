@@ -445,8 +445,8 @@ function App() {
                     window.plausible('Premium Payment Started');
                   }
                   
-                  // TODO: Replace with your actual Stripe Price ID
-                  const priceId = 'price_1234567890'; // You'll need to replace this
+                                     // Use your actual Stripe Price ID
+                   const priceId = 'price_1RjSXJRPpCqX9umiVW7UQoHt';
                   await redirectToCheckout(priceId);
                 } catch (error) {
                   alert('支付系统暂时不可用，请稍后再试');
@@ -459,7 +459,7 @@ function App() {
             
             {/* Waitlist Button */}
             <a
-              href="https://tally.so/r/waitlist-link" // TODO: Replace with your waitlist Tally form
+                             href="https://tally.so/r/mV7yzM"
               target="_blank"
               rel="noopener noreferrer"
               style={{
