@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { analyzeTranscript } from './utils/analyzeTranscript';
 import { parseFeedback } from './utils/parseFeedback';
 import { redirectToCheckout } from './utils/stripe';
+import { getUsageStats, incrementUsage, canPractice, setSubscriptionStatus, resetUsageCount } from './utils/usageTracker';
 
 const WORDS = [
   'music', 'travel', 'technology', 'food', 'hobby', 'friendship', 'future', 'dream', 'challenge', 'success',
@@ -32,6 +33,7 @@ function App() {
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [browserWarning, setBrowserWarning] = useState('');
+  const [usageStats, setUsageStats] = useState(getUsageStats());
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -46,6 +48,17 @@ function App() {
     } else if (isMobile && isChrome) {
       setBrowserWarning('Recording may not work properly on Chrome Mobile. For best experience, please use Safari on mobile or Chrome on desktop.');
     }
+
+    // Check for successful payment callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      setSubscriptionStatus('active');
+      setUsageStats(getUsageStats());
+      alert('🎉 Payment successful! You now have unlimited practice sessions.');
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   const handleStart = () => {
@@ -59,6 +72,12 @@ function App() {
   };
 
   const handleMicrophoneClick = () => {
+    // Check usage limit first
+    if (!canPractice()) {
+      setShowPaywall(true);
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
@@ -119,6 +138,10 @@ function App() {
       if (finalTranscript.length > 0) {
         setLoadingAnalysis(true);
         
+        // Increment usage count
+        incrementUsage();
+        setUsageStats(getUsageStats());
+        
         // Track recording completion
         if (window.plausible) {
           window.plausible('Recording Completed', { 
@@ -171,9 +194,27 @@ function App() {
         padding: '1rem',
       }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>JAM Talk</h1>
-        <p style={{ fontSize: '1.2rem', marginBottom: '2rem', color: '#444' }}>
+        <p style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#444' }}>
           Just a minute - Practice your English speaking skills!
         </p>
+        
+        {/* Usage Stats */}
+        <div style={{
+          background: usageStats.isSubscribed ? '#e8f5e8' : '#fff3e0',
+          color: usageStats.isSubscribed ? '#2e7d32' : '#f57c00',
+          padding: '0.75rem 1rem',
+          borderRadius: '8px',
+          marginBottom: '1.5rem',
+          fontSize: '0.9rem',
+          fontWeight: 'bold',
+          border: `1px solid ${usageStats.isSubscribed ? '#81c784' : '#ffb74d'}`,
+        }}>
+          {usageStats.isSubscribed ? (
+            '🎉 Premium用户 - 无限练习'
+          ) : (
+            `🆓 免费体验: ${usageStats.remainingFree}/${2} 次剩余`
+          )}
+        </div>
         
         {browserWarning && (
           <div style={{
@@ -210,6 +251,30 @@ function App() {
         >
           Start
         </button>
+        
+        {/* Test Reset Button - Remove in production */}
+        {(window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app')) && (
+          <button
+            style={{
+              background: '#9e9e9e',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '20px',
+              padding: '0.5rem 1rem',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              marginTop: '1rem',
+            }}
+            onClick={() => {
+              resetUsageCount();
+              setSubscriptionStatus('inactive');
+              setUsageStats(getUsageStats());
+              alert('Usage reset for testing!');
+            }}
+          >
+            🔄 Reset Usage (Test)
+          </button>
+        )}
       </div>
     );
   }
@@ -412,9 +477,9 @@ function App() {
             textAlign: 'center',
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}>
-            <h2 style={{ color: '#FF5722', marginBottom: '1rem' }}>🎯 AI Coach Premium</h2>
+            <h2 style={{ color: '#FF5722', marginBottom: '1rem' }}>🎯 解锁无限练习</h2>
             <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-              获取个性化辅导、详细发音分析和无限练习机会！
+              您已用完 2 次免费体验！升级到 Premium 获取无限练习机会和 AI 个性化辅导。
             </p>
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FF5722' }}>$9.99/月</div>
