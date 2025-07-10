@@ -1,10 +1,21 @@
 import { loadStripe } from '@stripe/stripe-js';
 
-// Initialize Stripe with your publishable key
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+// Initialize Stripe lazily with appropriate key based on mode
+function getStripePromise() {
+  const forceTestMode = localStorage.getItem('jamtalk_test_mode') === 'true';
+  const isTestMode = import.meta.env.DEV || window.location.hostname === 'localhost' || forceTestMode;
+  
+  if (isTestMode && import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_TEST) {
+    console.log('Using TEST Stripe key');
+    return loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY_TEST);
+  }
+  
+  console.log('Using LIVE Stripe key');
+  return loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+}
 
 export async function redirectToCheckout(priceId, testMode = false) {
-  const stripe = await stripePromise;
+  const stripe = await getStripePromise();
   
   if (!stripe) {
     throw new Error('Stripe failed to load');
