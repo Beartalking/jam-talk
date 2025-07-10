@@ -50,6 +50,11 @@ function App() {
   const handleStart = () => {
     setWord(getRandomWord());
     setStarted(true);
+    
+    // Track practice session start
+    if (window.plausible) {
+      window.plausible('Practice Started', { props: { word: getRandomWord() } });
+    }
   };
 
   const handleMicrophoneClick = () => {
@@ -112,9 +117,25 @@ function App() {
       clearInterval(timerRef.current);
       if (finalTranscript.length > 0) {
         setLoadingAnalysis(true);
+        
+        // Track recording completion
+        if (window.plausible) {
+          window.plausible('Recording Completed', { 
+            props: { 
+              word: word,
+              transcript_length: finalTranscript.length 
+            } 
+          });
+        }
+        
         try {
           const feedback = await analyzeTranscript(finalTranscript);
           setAnalysis(feedback);
+          
+          // Track feedback received
+          if (window.plausible) {
+            window.plausible('Feedback Received');
+          }
         } catch (e) {
           setAnalysis('Analysis failed. Please try again.');
         }
@@ -286,6 +307,11 @@ function App() {
               setWord('');
               setTranscript('');
               setAnalysis('');
+              
+              // Track practice again
+              if (window.plausible) {
+                window.plausible('Practice Again');
+              }
             }}
           >
             Practice again
@@ -302,7 +328,14 @@ function App() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               transition: 'background 0.2s',
             }}
-            onClick={() => setShowPaywall(true)}
+            onClick={() => {
+              setShowPaywall(true);
+              
+              // Track premium feature interest
+              if (window.plausible) {
+                window.plausible('AI Coach Clicked');
+              }
+            }}
           >
             AI Coach
           </button>
@@ -351,7 +384,13 @@ function App() {
                   cursor: 'pointer',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                 }}
-                onClick={() => alert('This is a demo - no actual payment required!')}
+                onClick={() => {
+                  // Track premium conversion attempt
+                  if (window.plausible) {
+                    window.plausible('Premium Trial Started');
+                  }
+                  alert('This is a demo - no actual payment required!');
+                }}
               >
                 Start Free Trial
               </button>
