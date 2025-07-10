@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { analyzeTranscript } from './utils/analyzeTranscript';
 import { parseFeedback } from './utils/parseFeedback';
 
@@ -11,6 +11,16 @@ function getRandomWord() {
   return WORDS[Math.floor(Math.random() * WORDS.length)];
 }
 
+function getBrowserInfo() {
+  const userAgent = navigator.userAgent;
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+  const isChrome = /Chrome/.test(userAgent);
+  const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+  
+  return { isMobile, isChrome, isSafari, isIOS };
+}
+
 function App() {
   const [started, setStarted] = useState(false);
   const [word, setWord] = useState('');
@@ -20,8 +30,22 @@ function App() {
   const [analysis, setAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [browserWarning, setBrowserWarning] = useState('');
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    const { isMobile, isChrome, isSafari } = getBrowserInfo();
+    
+    // Check for speech recognition support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      setBrowserWarning('Speech recognition is not supported in this browser. Please try Chrome Desktop or Safari.');
+    } else if (isMobile && isChrome) {
+      setBrowserWarning('Recording may not work properly on Chrome Mobile. For best experience, please use Safari on mobile or Chrome on desktop.');
+    }
+  }, []);
 
   const handleStart = () => {
     setWord(getRandomWord());
@@ -29,17 +53,24 @@ function App() {
   };
 
   const handleMicrophoneClick = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please try:\n• Chrome on Desktop\n• Safari on Mobile\n• Edge on Desktop');
+      return;
+    }
+
+    const { isMobile, isChrome } = getBrowserInfo();
+    if (isMobile && isChrome) {
+      const proceed = confirm('Chrome Mobile may have recording issues. Continue anyway?\n\nFor better experience, try Safari on mobile.');
+      if (!proceed) return;
+    }
+
     setRecording(true);
     setTranscript('');
     setAnalysis('');
     setTimer(60);
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Sorry, your browser does not support Speech Recognition.');
-      setRecording(false);
-      return;
-    }
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = true;
@@ -58,12 +89,24 @@ function App() {
       }
       setTranscript(finalTranscript + interim);
     };
+    
     recognition.onerror = (event) => {
       setRecording(false);
       recognition.stop();
       clearInterval(timerRef.current);
-      alert('Speech recognition error: ' + event.error);
+      
+      let errorMessage = 'Speech recognition error: ' + event.error;
+      if (event.error === 'not-allowed') {
+        errorMessage = 'Microphone access denied. Please allow microphone access and try again.';
+      } else if (event.error === 'no-speech') {
+        errorMessage = 'No speech detected. Please speak clearly and try again.';
+      } else if (event.error === 'network') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      }
+      
+      alert(errorMessage);
     };
+    
     recognition.onend = async () => {
       setRecording(false);
       clearInterval(timerRef.current);
@@ -78,6 +121,7 @@ function App() {
         setLoadingAnalysis(false);
       }
     };
+    
     recognition.start();
 
     timerRef.current = setInterval(() => {
@@ -102,11 +146,29 @@ function App() {
         justifyContent: 'center',
         alignItems: 'center',
         background: '#fff',
+        padding: '1rem',
       }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>JAM Talk</h1>
         <p style={{ fontSize: '1.2rem', marginBottom: '2rem', color: '#444' }}>
           Just a minute - Practice your English speaking skills!
         </p>
+        
+        {browserWarning && (
+          <div style={{
+            background: '#fff3cd',
+            color: '#856404',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+            maxWidth: '400px',
+            textAlign: 'center',
+            fontSize: '0.9rem',
+            border: '1px solid #ffeaa7',
+          }}>
+            ⚠️ {browserWarning}
+          </div>
+        )}
+        
         <button
           style={{
             background: '#FF5722',
