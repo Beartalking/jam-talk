@@ -341,7 +341,54 @@ function App() {
           </button>
         </div>
       )}
-     
+      
+      {/* Survey Section */}
+      {analysis && (
+        <div style={{
+          marginTop: '2rem',
+          padding: '1.5rem',
+          background: '#f8f9fa',
+          borderRadius: '12px',
+          maxWidth: '500px',
+          textAlign: 'center',
+          border: '1px solid #e9ecef',
+        }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#495057' }}>
+            📝 帮助我们改进 JAM Talk
+          </div>
+          <div style={{ fontSize: '0.9rem', color: '#6c757d', marginBottom: '1rem', lineHeight: '1.4' }}>
+            您的体验如何？请花1分钟填写问卷，帮助我们打造更好的英语口语练习工具
+          </div>
+          <a
+            href="https://tally.so/r/mK20dg"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-block',
+              background: '#6c757d',
+              color: '#fff',
+              textDecoration: 'none',
+              borderRadius: '20px',
+              padding: '0.6rem 1.5rem',
+              fontSize: '0.9rem',
+              transition: 'background 0.2s',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            onMouseOver={e => (e.currentTarget.style.background = '#5a6268')}
+            onMouseOut={e => (e.currentTarget.style.background = '#6c757d')}
+            onClick={() => {
+              // Track survey click
+              if (window.plausible) {
+                window.plausible('Survey Clicked');
+              }
+            }}
+          >
+            填写问卷 (1分钟)
+          </a>
+        </div>
+      )}
+      
       {/* Paywall Modal */}
       {showPaywall && (
         <div style={{
