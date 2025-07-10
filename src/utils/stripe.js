@@ -11,8 +11,11 @@ export async function redirectToCheckout(priceId, testMode = false) {
   }
 
   // Use test price ID if in test mode or development
-  const isTestMode = testMode || import.meta.env.DEV || window.location.hostname === 'localhost';
-  const finalPriceId = isTestMode ? 'price_1RjSXJRPpCqX9umiVW7UQoHt' : priceId; // Replace with your test price ID if you have one
+  const forceTestMode = localStorage.getItem('jamtalk_test_mode') === 'true';
+  const isTestMode = testMode || import.meta.env.DEV || window.location.hostname === 'localhost' || forceTestMode;
+  // Use test price ID in test mode
+  const testPriceId = 'price_1RjTG9RPpCqX9umiBI3d50mk'; // Your test price ID
+  const finalPriceId = isTestMode ? testPriceId : priceId;
 
   console.log('Checkout mode:', isTestMode ? 'TEST' : 'LIVE');
   console.log('Using price ID:', finalPriceId);

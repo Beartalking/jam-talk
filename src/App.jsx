@@ -254,26 +254,44 @@ function App() {
         
         {/* Test Reset Button - Remove in production */}
         {(window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app')) && (
-          <button
-            style={{
-              background: '#9e9e9e',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '20px',
-              padding: '0.5rem 1rem',
-              fontSize: '0.8rem',
-              cursor: 'pointer',
-              marginTop: '1rem',
-            }}
-            onClick={() => {
-              resetUsageCount();
-              setSubscriptionStatus('inactive');
-              setUsageStats(getUsageStats());
-              alert('Usage reset for testing!');
-            }}
-          >
-            🔄 Reset Usage (Test)
-          </button>
+          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <button
+              style={{
+                background: '#9e9e9e',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '20px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                resetUsageCount();
+                setSubscriptionStatus('inactive');
+                setUsageStats(getUsageStats());
+                alert('Usage reset for testing!');
+              }}
+            >
+              🔄 Reset Usage (Test)
+            </button>
+            <button
+              style={{
+                background: '#2196f3',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '20px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+              }}
+              onClick={() => {
+                localStorage.setItem('jamtalk_test_mode', 'true');
+                alert('Test mode enabled! Now you can use test cards.');
+              }}
+            >
+              🧪 Enable Test Mode
+            </button>
+          </div>
         )}
       </div>
     );
