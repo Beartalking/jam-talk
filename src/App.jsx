@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeTranscript } from './utils/analyzeTranscript';
 import { parseFeedback } from './utils/parseFeedback';
+import { redirectToCheckout } from './utils/stripe';
 
 const WORDS = [
   'music', 'travel', 'technology', 'food', 'hobby', 'friendship', 'future', 'dream', 'challenge', 'success',
@@ -407,7 +408,7 @@ function App() {
             background: '#fff',
             padding: '2rem',
             borderRadius: '12px',
-            maxWidth: '400px',
+            maxWidth: '450px',
             textAlign: 'center',
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}>
@@ -415,47 +416,90 @@ function App() {
             <p style={{ color: '#666', marginBottom: '1.5rem' }}>
               获取个性化辅导、详细发音分析和无限练习机会！
             </p>
-            <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FF5722' }}>$9.99/月</div>
               <div style={{ fontSize: '0.9rem', color: '#888' }}>7天免费试用</div>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-              <button
-                style={{
-                  background: '#FF5722',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '24px',
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                }}
-                onClick={() => {
+            
+            {/* Payment Button */}
+            <button
+              style={{
+                background: '#FF5722',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '24px',
+                padding: '0.75rem 2rem',
+                fontSize: '1rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                marginBottom: '1rem',
+                width: '100%',
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = '#e64a19')}
+              onMouseOut={e => (e.currentTarget.style.background = '#FF5722')}
+              onClick={async () => {
+                try {
                   // Track premium conversion attempt
                   if (window.plausible) {
-                    window.plausible('Premium Trial Started');
+                    window.plausible('Premium Payment Started');
                   }
-                  alert('This is a demo - no actual payment required!');
-                }}
-              >
-                开始免费试用
-              </button>
-              <button
-                style={{
-                  background: '#ccc',
-                  color: '#666',
-                  border: 'none',
-                  borderRadius: '24px',
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                }}
-                onClick={() => setShowPaywall(false)}
-              >
-                稍后再说
-              </button>
-            </div>
+                  
+                  // TODO: Replace with your actual Stripe Price ID
+                  const priceId = 'price_1234567890'; // You'll need to replace this
+                  await redirectToCheckout(priceId);
+                } catch (error) {
+                  alert('支付系统暂时不可用，请稍后再试');
+                  console.error('Stripe error:', error);
+                }
+              }}
+            >
+              开始免费试用
+            </button>
+            
+            {/* Waitlist Button */}
+            <a
+              href="https://tally.so/r/waitlist-link" // TODO: Replace with your waitlist Tally form
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                background: '#6c757d',
+                color: '#fff',
+                textDecoration: 'none',
+                borderRadius: '24px',
+                padding: '0.75rem 2rem',
+                fontSize: '1rem',
+                marginBottom: '1rem',
+                transition: 'background 0.2s',
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = '#5a6268')}
+              onMouseOut={e => (e.currentTarget.style.background = '#6c757d')}
+              onClick={() => {
+                // Track waitlist signup
+                if (window.plausible) {
+                  window.plausible('Waitlist Clicked');
+                }
+              }}
+            >
+              加入等待名单
+            </a>
+            
+            {/* Close Button */}
+            <button
+              style={{
+                background: 'transparent',
+                color: '#999',
+                border: 'none',
+                borderRadius: '24px',
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+              }}
+              onClick={() => setShowPaywall(false)}
+            >
+              暂时不需要
+            </button>
           </div>
         </div>
       )}
