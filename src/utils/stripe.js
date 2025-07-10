@@ -22,7 +22,6 @@ export async function redirectToCheckout(priceId) {
       mode: 'subscription',
       successUrl: `${window.location.origin}/?success=true`,
       cancelUrl: `${window.location.origin}/?canceled=true`,
-      allowPromotionCodes: true,
       billingAddressCollection: 'auto',
     });
 
