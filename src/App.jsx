@@ -442,6 +442,7 @@ function App() {
                 try {
                   // Debug: Check if Stripe key is loaded
                   console.log('Stripe key loaded:', !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+                  console.log('Starting checkout with price ID:', 'price_1RjSXJRPpCqX9umiVW7UQoHt');
                   
                   // Track premium conversion attempt
                   if (window.plausible) {
@@ -450,10 +451,20 @@ function App() {
                   
                   // Use your actual Stripe Price ID
                   const priceId = 'price_1RjSXJRPpCqX9umiVW7UQoHt';
-                  await redirectToCheckout(priceId);
+                  
+                  // Try live mode first, fallback to test if needed
+                  try {
+                    await redirectToCheckout(priceId);
+                  } catch (stripeError) {
+                    console.error('Live mode failed, error:', stripeError);
+                    // If you have a test price ID, you could try that here
+                    throw stripeError;
+                  }
                 } catch (error) {
-                  console.error('Payment error:', error);
-                  alert('支付系统暂时不可用，请稍后再试');
+                  console.error('Payment error details:', error);
+                  console.error('Error message:', error.message);
+                  console.error('Error type:', error.type);
+                  alert(`支付系统错误: ${error.message || '请稍后再试'}`);
                 }
               }}
             >
