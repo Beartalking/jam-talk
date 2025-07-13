@@ -29,7 +29,7 @@ function App() {
   const [started, setStarted] = useState(false);
   const [word, setWord] = useState('');
   const [recording, setRecording] = useState(false);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(60);
   const [transcript, setTranscript] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -87,11 +87,11 @@ function App() {
   };
 
   const handleMicrophoneClick = () => {
-    // Check usage limit first
-    if (!canPractice()) {
-      setShowPaywall(true);
-      return;
-    }
+    // Skip usage check for testing branch - all features enabled
+    // if (!canPractice()) {
+    //   setShowPaywall(true);
+    //   return;
+    // }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
@@ -109,7 +109,7 @@ function App() {
     setRecording(true);
     setTranscript('');
     setAnalysis('');
-    setTimer(30);
+    setTimer(60);
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
@@ -153,9 +153,9 @@ function App() {
       if (finalTranscript.length > 0) {
         setLoadingAnalysis(true);
         
-        // Increment usage count
-        incrementUsage();
-        setUsageStats(getUsageStats());
+        // Skip usage tracking for testing branch
+        // incrementUsage();
+        // setUsageStats(getUsageStats());
         
         // Track recording completion
         if (window.plausible) {
@@ -209,29 +209,23 @@ function App() {
         padding: '1rem',
       }}>
         <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>JAM Talk</h1>
+        <div style={{
+          background: '#e3f2fd',
+          color: '#1565c0',
+          padding: '0.5rem 1rem',
+          borderRadius: '8px',
+          marginBottom: '1rem',
+          fontSize: '0.9rem',
+          fontWeight: 'bold',
+          border: '1px solid #90caf9',
+        }}>
+          🧪 Testing Version - All Premium Features Enabled
+        </div>
         <p style={{ fontSize: '1.2rem', marginBottom: '1rem', color: '#444' }}>
           Just a minute - Practice your English speaking skills!
         </p>
         
-        {/* Usage Stats - Hidden for testing */}
-        {false && (
-          <div style={{
-            background: usageStats.isSubscribed ? '#e8f5e8' : '#fff3e0',
-            color: usageStats.isSubscribed ? '#2e7d32' : '#f57c00',
-            padding: '0.75rem 1rem',
-            borderRadius: '8px',
-            marginBottom: '1.5rem',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            border: `1px solid ${usageStats.isSubscribed ? '#81c784' : '#ffb74d'}`,
-          }}>
-            {usageStats.isSubscribed ? (
-              '🎉 Premium用户 - 无限练习'
-            ) : (
-              `🆓 免费体验: ${usageStats.remainingFree}/${2} 次剩余`
-            )}
-          </div>
-        )}
+        {/* Usage Stats - Hidden for testing branch */}
         
         {browserWarning && (
           <div style={{
@@ -269,47 +263,7 @@ function App() {
           Start
         </button>
         
-        {/* Test Reset Button - Remove in production */}
-        {(window.location.hostname === 'localhost' || window.location.hostname.includes('vercel.app')) && (
-          <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <button
-              style={{
-                background: '#9e9e9e',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '20px',
-                padding: '0.5rem 1rem',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-              onClick={() => {
-                resetUsageCount();
-                setSubscriptionStatus('inactive');
-                setUsageStats(getUsageStats());
-                alert('Usage reset for testing!');
-              }}
-            >
-              🔄 Reset Usage (Test)
-            </button>
-            <button
-              style={{
-                background: '#2196f3',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '20px',
-                padding: '0.5rem 1rem',
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-              }}
-              onClick={() => {
-                localStorage.setItem('jamtalk_test_mode', 'true');
-                alert('Test mode enabled! Now you can use test cards.');
-              }}
-            >
-              🧪 Enable Test Mode
-            </button>
-          </div>
-        )}
+        {/* Test buttons hidden for testing branch to avoid confusion */}
       </div>
     );
   }
@@ -325,11 +279,11 @@ function App() {
       background: '#fff',
     }}>
       <div style={{ fontSize: '1rem', color: '#666', marginBottom: '0.5rem' }}>
-        欢迎来到 JAM-Talk！现在给你一个单词，请用英文讲述 30 秒
+        欢迎来到 JAM-Talk！现在给你一个单词，请用英文讲述 60 秒
       </div>
       <h2 style={{ fontSize: '2rem', margin: '0.5rem 0' }}>{word}</h2>
       <div style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>
-        ✏️ 点击麦克风按钮，规定时间围绕 "{word}" 进行 30 秒的英文表达<br/>
+        ✏️ 点击麦克风按钮，规定时间围绕 "{word}" 进行 60 秒的英文表达<br/>
         例：What is it? What does it mean for you?
       </div>
       {/* Only show the button if analysis is not present */}
@@ -351,7 +305,7 @@ function App() {
           onClick={recording ? undefined : handleMicrophoneClick}
           disabled={recording}
         >
-          {recording ? 'Listening...' : '开始 30 秒'}
+          {recording ? 'Listening...' : '开始 60 秒'}
         </button>
       )}
       {/* Hide the button when analysis is shown */}
@@ -440,11 +394,11 @@ function App() {
                 window.plausible('AI Coach Clicked');
               }
               
-              // Check if user is subscribed
-              if (!usageStats.isSubscribed) {
-                setShowPaywall(true);
-                return;
-              }
+              // Skip subscription check for testing branch - all features enabled
+              // if (!usageStats.isSubscribed) {
+              //   setShowPaywall(true);
+              //   return;
+              // }
               
               // Generate script for current word
               setLoadingScript(true);
