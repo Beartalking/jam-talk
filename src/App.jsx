@@ -3,6 +3,8 @@ import { analyzeTranscript } from './utils/analyzeTranscript';
 import { parseFeedback } from './utils/parseFeedback';
 import { redirectToCheckout } from './utils/stripe';
 import { getUsageStats, incrementUsage, canPractice, setSubscriptionStatus, resetUsageCount } from './utils/usageTracker';
+import { generateScript } from './utils/generateScript';
+import { ttsService } from './utils/textToSpeech';
 
 const WORDS = [
   'music', 'travel', 'technology', 'food', 'hobby', 'friendship', 'future', 'dream', 'challenge', 'success',
@@ -34,6 +36,10 @@ function App() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [browserWarning, setBrowserWarning] = useState('');
   const [usageStats, setUsageStats] = useState(getUsageStats());
+  const [showAICoach, setShowAICoach] = useState(false);
+  const [aiScript, setAiScript] = useState('');
+  const [loadingScript, setLoadingScript] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -59,6 +65,13 @@ function App() {
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    
+    // Cleanup function
+    return () => {
+      if (ttsService) {
+        ttsService.stop();
+      }
+    };
   }, []);
 
   const handleStart = () => {
@@ -393,6 +406,10 @@ function App() {
               setWord('');
               setTranscript('');
               setAnalysis('');
+              setShowAICoach(false);
+              setAiScript('');
+              ttsService.stop();
+              setIsPlaying(false);
               
               // Track practice again
               if (window.plausible) {
@@ -414,17 +431,184 @@ function App() {
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
               transition: 'background 0.2s',
             }}
-            onClick={() => {
-              setShowPaywall(true);
-              
-              // Track premium feature interest
+            onClick={async () => {
+              // Track AI coach usage
               if (window.plausible) {
                 window.plausible('AI Coach Clicked');
+              }
+              
+              // Check if user is subscribed
+              if (!usageStats.isSubscribed) {
+                setShowPaywall(true);
+                return;
+              }
+              
+              // Generate script for current word
+              setLoadingScript(true);
+              setShowAICoach(true);
+              
+              try {
+                const script = await generateScript(word);
+                setAiScript(script);
+                
+                // Track successful script generation
+                if (window.plausible) {
+                  window.plausible('AI Script Generated', { 
+                    props: { word: word } 
+                  });
+                }
+              } catch (error) {
+                console.error('Error generating script:', error);
+                setAiScript('Sorry, I couldn\'t generate a script at this time. Please try again later.');
+              } finally {
+                setLoadingScript(false);
               }
             }}
           >
             AI Coach
           </button>
+        </div>
+      )}
+      
+      {/* AI Coach Section */}
+      {showAICoach && (
+        <div style={{
+          marginTop: '2rem',
+          padding: '1.5rem',
+          background: '#f8f9fa',
+          borderRadius: '12px',
+          maxWidth: '600px',
+          border: '1px solid #e9ecef',
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1rem'
+          }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#495057' }}>
+              🤖 AI Coach - "{word}"
+            </div>
+            <button
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#6c757d',
+                padding: '0.25rem'
+              }}
+              onClick={() => {
+                setShowAICoach(false);
+                setAiScript('');
+                ttsService.stop();
+                setIsPlaying(false);
+              }}
+            >
+              ×
+            </button>
+          </div>
+          
+          {loadingScript ? (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2rem',
+              color: '#6c757d'
+            }}>
+              <div>🎯 生成中...</div>
+            </div>
+          ) : (
+            <div>
+              <div style={{
+                background: '#fff',
+                padding: '1rem',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                border: '1px solid #dee2e6',
+                lineHeight: '1.6',
+                fontSize: '1rem',
+                color: '#495057'
+              }}>
+                {aiScript}
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                gap: '1rem',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <button
+                  style={{
+                    background: isPlaying ? '#dc3545' : '#28a745',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '20px',
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'background 0.2s',
+                  }}
+                  onClick={async () => {
+                    if (isPlaying) {
+                      ttsService.stop();
+                      setIsPlaying(false);
+                      
+                      // Track TTS stop
+                      if (window.plausible) {
+                        window.plausible('TTS Stopped');
+                      }
+                    } else {
+                      try {
+                        setIsPlaying(true);
+                        
+                        // Track TTS start
+                        if (window.plausible) {
+                          window.plausible('TTS Started', { 
+                            props: { word: word } 
+                          });
+                        }
+                        
+                        await ttsService.speak(aiScript, {
+                          onEnd: () => {
+                            setIsPlaying(false);
+                            
+                            // Track TTS completion
+                            if (window.plausible) {
+                              window.plausible('TTS Completed');
+                            }
+                          },
+                          onError: (error) => {
+                            console.error('TTS Error:', error);
+                            setIsPlaying(false);
+                          }
+                        });
+                      } catch (error) {
+                        console.error('TTS Error:', error);
+                        setIsPlaying(false);
+                        alert('Speech synthesis failed. Please try again.');
+                      }
+                    }
+                  }}
+                >
+                  {isPlaying ? '⏹️ Stop' : '▶️ Listen'}
+                </button>
+                
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#6c757d',
+                  textAlign: 'center'
+                }}>
+                  {isPlaying ? '🔊 Playing...' : '🎧 Click to hear native pronunciation'}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
       
@@ -497,10 +681,22 @@ function App() {
             textAlign: 'center',
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}>
-            <h2 style={{ color: '#FF5722', marginBottom: '1rem' }}>🎯 解锁无限练习</h2>
-            <p style={{ color: '#666', marginBottom: '1.5rem' }}>
-              您已用完 2 次免费体验！升级到 Premium 获取无限练习机会和 AI 个性化辅导。
+            <h2 style={{ color: '#FF5722', marginBottom: '1rem' }}>🎯 解锁 Premium 功能</h2>
+            <p style={{ color: '#666', marginBottom: '1rem' }}>
+              升级到 Premium 获取完整功能：
             </p>
+            <div style={{
+              background: '#f8f9fa',
+              padding: '1rem',
+              borderRadius: '8px',
+              marginBottom: '1.5rem',
+              textAlign: 'left'
+            }}>
+              <div style={{ color: '#28a745', marginBottom: '0.5rem' }}>✅ 无限练习次数</div>
+              <div style={{ color: '#28a745', marginBottom: '0.5rem' }}>✅ AI 个性化反馈</div>
+              <div style={{ color: '#28a745', marginBottom: '0.5rem' }}>✅ AI Coach 脚本生成</div>
+              <div style={{ color: '#28a745' }}>✅ 真人发音朗读</div>
+            </div>
             <div style={{ marginBottom: '2rem' }}>
               <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FF5722' }}>$9.99/月</div>
               <div style={{ fontSize: '0.9rem', color: '#888' }}>7天免费试用</div>
