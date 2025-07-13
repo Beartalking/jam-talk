@@ -27,7 +27,7 @@ function App() {
   const [started, setStarted] = useState(false);
   const [word, setWord] = useState('');
   const [recording, setRecording] = useState(false);
-  const [timer, setTimer] = useState(60);
+  const [timer, setTimer] = useState(30);
   const [transcript, setTranscript] = useState('');
   const [analysis, setAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -94,7 +94,7 @@ function App() {
     setRecording(true);
     setTranscript('');
     setAnalysis('');
-    setTimer(60);
+    setTimer(30);
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
@@ -198,23 +198,25 @@ function App() {
           Just a minute - Practice your English speaking skills!
         </p>
         
-        {/* Usage Stats */}
-        <div style={{
-          background: usageStats.isSubscribed ? '#e8f5e8' : '#fff3e0',
-          color: usageStats.isSubscribed ? '#2e7d32' : '#f57c00',
-          padding: '0.75rem 1rem',
-          borderRadius: '8px',
-          marginBottom: '1.5rem',
-          fontSize: '0.9rem',
-          fontWeight: 'bold',
-          border: `1px solid ${usageStats.isSubscribed ? '#81c784' : '#ffb74d'}`,
-        }}>
-          {usageStats.isSubscribed ? (
-            '🎉 Premium用户 - 无限练习'
-          ) : (
-            `🆓 免费体验: ${usageStats.remainingFree}/${2} 次剩余`
-          )}
-        </div>
+        {/* Usage Stats - Hidden for testing */}
+        {false && (
+          <div style={{
+            background: usageStats.isSubscribed ? '#e8f5e8' : '#fff3e0',
+            color: usageStats.isSubscribed ? '#2e7d32' : '#f57c00',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
+            marginBottom: '1.5rem',
+            fontSize: '0.9rem',
+            fontWeight: 'bold',
+            border: `1px solid ${usageStats.isSubscribed ? '#81c784' : '#ffb74d'}`,
+          }}>
+            {usageStats.isSubscribed ? (
+              '🎉 Premium用户 - 无限练习'
+            ) : (
+              `🆓 免费体验: ${usageStats.remainingFree}/${2} 次剩余`
+            )}
+          </div>
+        )}
         
         {browserWarning && (
           <div style={{
@@ -308,11 +310,11 @@ function App() {
       background: '#fff',
     }}>
       <div style={{ fontSize: '1rem', color: '#666', marginBottom: '0.5rem' }}>
-        欢迎来到 JAM-Talk！现在给你一个单词，请用英文讲述 60 秒
+        欢迎来到 JAM-Talk！现在给你一个单词，请用英文讲述 30 秒
       </div>
       <h2 style={{ fontSize: '2rem', margin: '0.5rem 0' }}>{word}</h2>
       <div style={{ fontSize: '1.1rem', color: '#888', marginBottom: '2rem' }}>
-        ✏️ 点击麦克风按钮，规定时间围绕 "{word}" 进行 60 秒的英文表达<br/>
+        ✏️ 点击麦克风按钮，规定时间围绕 "{word}" 进行 30 秒的英文表达<br/>
         例：What is it? What does it mean for you?
       </div>
       {/* Only show the button if analysis is not present */}
@@ -334,7 +336,7 @@ function App() {
           onClick={recording ? undefined : handleMicrophoneClick}
           disabled={recording}
         >
-          {recording ? 'Listening...' : '开始 60 秒'}
+          {recording ? 'Listening...' : '开始 30 秒'}
         </button>
       )}
       {/* Hide the button when analysis is shown */}
