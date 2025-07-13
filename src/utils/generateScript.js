@@ -9,20 +9,21 @@ export async function generateScript(word) {
 
   const prompt = `You are a native English speaker helping non-native speakers practice English. 
 
-Create a 60-second natural speaking script about the word "${word}". 
+Create a natural speaking script about the word "${word}". 
 
 Requirements:
 - Write in a conversational, natural tone as if you're a native English speaker
 - Include personal thoughts, experiences, or opinions about the topic
 - Use varied sentence structures and natural transitions
 - Include some common phrases and idioms that native speakers use
-- The script should be exactly the right length for a 60-second natural speech
+- Keep it to approximately 120 words (concise but complete)
 - Make it engaging and relatable
 - Use vocabulary and expressions that are natural for native speakers
+- Focus on the most important aspects of the topic
 
 Topic: ${word}
 
-Please write a script that sounds like a native English speaker talking naturally about this topic:`;
+Please write a 120-word script that sounds like a native English speaker talking naturally about this topic:`;
 
   const messages = [
     { role: 'system', content: 'You are a native English speaker creating natural, conversational scripts for English language learners.' },
@@ -39,7 +40,7 @@ Please write a script that sounds like a native English speaker talking naturall
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',
         messages,
-        max_tokens: 400,
+        max_tokens: 250,
         temperature: 0.7,
       }),
     });
