@@ -157,6 +157,7 @@ export class OpenAITTSService {
         speed: options.speed || 0.9, // 0.25 to 4.0
         response_format: 'mp3'
       }),
+      signal: options.abortSignal // Add abort signal support
     });
 
     if (!response.ok) {
@@ -172,11 +173,24 @@ export class OpenAITTSService {
         // Stop any current playback
         this.stop();
 
+        // Check if already aborted
+        if (options.abortSignal?.aborted) {
+          reject(new Error('Aborted'));
+          return;
+        }
+
         // Track TTS generation start
         if (options.onStart) options.onStart();
 
         // Generate speech using OpenAI
         const audioBlob = await this.generateSpeech(text, options);
+        
+        // Check if aborted during generation
+        if (options.abortSignal?.aborted) {
+          reject(new Error('Aborted'));
+          return;
+        }
+        
         const audioUrl = URL.createObjectURL(audioBlob);
         
         // Create audio element
@@ -186,19 +200,35 @@ export class OpenAITTSService {
         // Set up event listeners
         this.currentAudio.onended = () => {
           this.isPlaying = false;
-          this.currentAudio = null;
           URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
           if (options.onEnd) options.onEnd();
           resolve();
         };
 
         this.currentAudio.onerror = (error) => {
           this.isPlaying = false;
-          this.currentAudio = null;
           URL.revokeObjectURL(audioUrl);
+          this.currentAudio = null;
           if (options.onError) options.onError(error);
           reject(error);
         };
+
+        // Handle manual stop during playback
+        this.currentAudio.onpause = () => {
+          if (this.currentAudio && this.currentAudio.currentTime === 0) {
+            URL.revokeObjectURL(audioUrl);
+          }
+        };
+
+        // Handle abort signal
+        if (options.abortSignal) {
+          options.abortSignal.addEventListener('abort', () => {
+            this.stop();
+            URL.revokeObjectURL(audioUrl);
+            reject(new Error('Aborted'));
+          });
+        }
 
         // Start playback
         await this.currentAudio.play();
@@ -216,6 +246,9 @@ export class OpenAITTSService {
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio.currentTime = 0;
+      // Clean up the audio element completely
+      this.currentAudio.src = '';
+      this.currentAudio.load();
       this.currentAudio = null;
     }
     this.isPlaying = false;
@@ -241,34 +274,62 @@ export class EnhancedTTSService {
     this.webSpeechTTS = new TextToSpeechService();
     this.isPlaying = false;
     this.currentService = null;
+    this.isGenerating = false;
+    this.abortController = null;
   }
 
   async speak(text, options = {}) {
+    // Prevent multiple simultaneous requests
+    if (this.isGenerating || this.isPlaying) {
+      console.log('TTS already in progress, stopping previous and starting new...');
+      this.stop();
+      
+      // Wait a bit for cleanup
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // Create new abort controller for this request
+    this.abortController = new AbortController();
+    this.isGenerating = true;
+    
     const enhancedOptions = {
       ...options,
       onStart: () => {
+        this.isGenerating = false;
         this.isPlaying = true;
         if (options.onStart) options.onStart();
       },
       onEnd: () => {
+        this.isGenerating = false;
         this.isPlaying = false;
         this.currentService = null;
+        this.abortController = null;
         if (options.onEnd) options.onEnd();
       },
       onError: (error) => {
+        this.isGenerating = false;
         this.isPlaying = false;
         this.currentService = null;
+        this.abortController = null;
         if (options.onError) options.onError(error);
       }
     };
 
-    // Try OpenAI TTS first for premium quality
     try {
+      // Try OpenAI TTS first for premium quality
       console.log('Attempting OpenAI TTS...');
       this.currentService = 'openai';
-      await this.openaiTTS.speak(text, enhancedOptions);
+      await this.openaiTTS.speak(text, { 
+        ...enhancedOptions,
+        abortSignal: this.abortController.signal 
+      });
       return;
     } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('OpenAI TTS aborted');
+        return;
+      }
+      
       console.log('OpenAI TTS failed, falling back to Web Speech:', error);
       
       // Fallback to Web Speech API
@@ -283,9 +344,28 @@ export class EnhancedTTSService {
   }
 
   stop() {
+    // Abort any ongoing generation
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
+    
+    this.isGenerating = false;
     this.isPlaying = false;
-    this.openaiTTS.stop();
-    this.webSpeechTTS.stop();
+    
+    // Force stop both services to prevent multiple playbacks
+    try {
+      this.openaiTTS.stop();
+    } catch (error) {
+      console.log('Error stopping OpenAI TTS:', error);
+    }
+    
+    try {
+      this.webSpeechTTS.stop();
+    } catch (error) {
+      console.log('Error stopping Web Speech TTS:', error);
+    }
+    
     this.currentService = null;
   }
 

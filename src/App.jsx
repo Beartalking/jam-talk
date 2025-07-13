@@ -502,11 +502,19 @@ function App() {
                 padding: '0.25rem'
               }}
               onClick={() => {
+                // Force stop any TTS playback
+                ttsService.stop();
+                
+                // Clean up all states
                 setShowAICoach(false);
                 setAiScript('');
-                ttsService.stop();
                 setIsPlaying(false);
                 setTtsStatus('');
+                
+                // Track close action
+                if (window.plausible) {
+                  window.plausible('AI Coach Closed');
+                }
               }}
             >
               ×
