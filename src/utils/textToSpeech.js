@@ -131,5 +131,180 @@ export class TextToSpeechService {
   }
 }
 
+// OpenAI TTS Service for high-quality voices
+export class OpenAITTSService {
+  constructor() {
+    this.apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+    this.currentAudio = null;
+    this.isPlaying = false;
+  }
+
+  async generateSpeech(text, options = {}) {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not found');
+    }
+
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: text,
+        voice: options.voice || 'alloy', // alloy, echo, fable, onyx, nova, shimmer
+        speed: options.speed || 0.9, // 0.25 to 4.0
+        response_format: 'mp3'
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI TTS API error: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  async speak(text, options = {}) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Stop any current playback
+        this.stop();
+
+        // Track TTS generation start
+        if (options.onStart) options.onStart();
+
+        // Generate speech using OpenAI
+        const audioBlob = await this.generateSpeech(text, options);
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Create audio element
+        this.currentAudio = new Audio(audioUrl);
+        this.isPlaying = true;
+
+        // Set up event listeners
+        this.currentAudio.onended = () => {
+          this.isPlaying = false;
+          this.currentAudio = null;
+          URL.revokeObjectURL(audioUrl);
+          if (options.onEnd) options.onEnd();
+          resolve();
+        };
+
+        this.currentAudio.onerror = (error) => {
+          this.isPlaying = false;
+          this.currentAudio = null;
+          URL.revokeObjectURL(audioUrl);
+          if (options.onError) options.onError(error);
+          reject(error);
+        };
+
+        // Start playback
+        await this.currentAudio.play();
+        
+      } catch (error) {
+        this.isPlaying = false;
+        this.currentAudio = null;
+        if (options.onError) options.onError(error);
+        reject(error);
+      }
+    });
+  }
+
+  stop() {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+    this.isPlaying = false;
+  }
+
+  pause() {
+    if (this.currentAudio && this.isPlaying) {
+      this.currentAudio.pause();
+    }
+  }
+
+  resume() {
+    if (this.currentAudio && !this.isPlaying) {
+      this.currentAudio.play();
+    }
+  }
+}
+
+// Enhanced TTS Service with OpenAI primary and Web Speech fallback
+export class EnhancedTTSService {
+  constructor() {
+    this.openaiTTS = new OpenAITTSService();
+    this.webSpeechTTS = new TextToSpeechService();
+    this.isPlaying = false;
+    this.currentService = null;
+  }
+
+  async speak(text, options = {}) {
+    const enhancedOptions = {
+      ...options,
+      onStart: () => {
+        this.isPlaying = true;
+        if (options.onStart) options.onStart();
+      },
+      onEnd: () => {
+        this.isPlaying = false;
+        this.currentService = null;
+        if (options.onEnd) options.onEnd();
+      },
+      onError: (error) => {
+        this.isPlaying = false;
+        this.currentService = null;
+        if (options.onError) options.onError(error);
+      }
+    };
+
+    // Try OpenAI TTS first for premium quality
+    try {
+      console.log('Attempting OpenAI TTS...');
+      this.currentService = 'openai';
+      await this.openaiTTS.speak(text, enhancedOptions);
+      return;
+    } catch (error) {
+      console.log('OpenAI TTS failed, falling back to Web Speech:', error);
+      
+      // Fallback to Web Speech API
+      try {
+        this.currentService = 'webspeech';
+        await this.webSpeechTTS.speak(text, enhancedOptions);
+      } catch (fallbackError) {
+        console.error('Both TTS services failed:', fallbackError);
+        throw fallbackError;
+      }
+    }
+  }
+
+  stop() {
+    this.isPlaying = false;
+    this.openaiTTS.stop();
+    this.webSpeechTTS.stop();
+    this.currentService = null;
+  }
+
+  pause() {
+    if (this.currentService === 'openai') {
+      this.openaiTTS.pause();
+    } else if (this.currentService === 'webspeech') {
+      this.webSpeechTTS.pause();
+    }
+  }
+
+  resume() {
+    if (this.currentService === 'openai') {
+      this.openaiTTS.resume();
+    } else if (this.currentService === 'webspeech') {
+      this.webSpeechTTS.resume();
+    }
+  }
+}
+
 // Create a singleton instance
-export const ttsService = new TextToSpeechService(); 
+export const ttsService = new EnhancedTTSService(); 

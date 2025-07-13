@@ -40,6 +40,8 @@ function App() {
   const [aiScript, setAiScript] = useState('');
   const [loadingScript, setLoadingScript] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [ttsStatus, setTtsStatus] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState('alloy');
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -410,6 +412,7 @@ function App() {
               setAiScript('');
               ttsService.stop();
               setIsPlaying(false);
+              setTtsStatus('');
               
               // Track practice again
               if (window.plausible) {
@@ -503,6 +506,7 @@ function App() {
                 setAiScript('');
                 ttsService.stop();
                 setIsPlaying(false);
+                setTtsStatus('');
               }}
             >
               ×
@@ -534,6 +538,51 @@ function App() {
                 {aiScript}
               </div>
               
+              {/* Voice Selection */}
+              <div style={{
+                marginBottom: '1rem',
+                padding: '0.75rem',
+                background: '#f8f9fa',
+                borderRadius: '8px',
+                border: '1px solid #e9ecef'
+              }}>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '0.5rem',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold',
+                  color: '#495057'
+                }}>
+                  🎙️ Voice Selection:
+                </label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid #ced4da',
+                    fontSize: '0.9rem',
+                    background: '#fff'
+                  }}
+                >
+                  <option value="alloy">Alloy (Neutral)</option>
+                  <option value="echo">Echo (Male)</option>
+                  <option value="fable">Fable (British Male)</option>
+                  <option value="onyx">Onyx (Deep Male)</option>
+                  <option value="nova">Nova (Young Female)</option>
+                  <option value="shimmer">Shimmer (Soft Female)</option>
+                </select>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: '#6c757d',
+                  marginTop: '0.25rem'
+                }}>
+                  Using high-quality AI voices with Web Speech fallback
+                </div>
+              </div>
+
               <div style={{
                 display: 'flex',
                 gap: '1rem',
@@ -558,6 +607,7 @@ function App() {
                     if (isPlaying) {
                       ttsService.stop();
                       setIsPlaying(false);
+                      setTtsStatus('');
                       
                       // Track TTS stop
                       if (window.plausible) {
@@ -566,31 +616,42 @@ function App() {
                     } else {
                       try {
                         setIsPlaying(true);
+                        setTtsStatus('🎯 Generating speech...');
                         
                         // Track TTS start
                         if (window.plausible) {
                           window.plausible('TTS Started', { 
-                            props: { word: word } 
+                            props: { word: word, voice: selectedVoice } 
                           });
                         }
                         
                         await ttsService.speak(aiScript, {
+                          voice: selectedVoice,
+                          speed: 0.9,
+                          onStart: () => {
+                            setTtsStatus('🔊 Playing with AI voice...');
+                          },
                           onEnd: () => {
                             setIsPlaying(false);
+                            setTtsStatus('');
                             
                             // Track TTS completion
                             if (window.plausible) {
-                              window.plausible('TTS Completed');
+                              window.plausible('TTS Completed', {
+                                props: { voice: selectedVoice }
+                              });
                             }
                           },
                           onError: (error) => {
                             console.error('TTS Error:', error);
                             setIsPlaying(false);
+                            setTtsStatus('⚠️ Falling back to system voice...');
                           }
                         });
                       } catch (error) {
                         console.error('TTS Error:', error);
                         setIsPlaying(false);
+                        setTtsStatus('');
                         alert('Speech synthesis failed. Please try again.');
                       }
                     }
@@ -604,7 +665,7 @@ function App() {
                   color: '#6c757d',
                   textAlign: 'center'
                 }}>
-                  {isPlaying ? '🔊 Playing...' : '🎧 Click to hear native pronunciation'}
+                  {ttsStatus || (isPlaying ? '🔊 Playing...' : '🎧 Click to hear native pronunciation')}
                 </div>
               </div>
             </div>
