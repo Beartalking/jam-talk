@@ -587,7 +587,7 @@ function App() {
                   color: '#6c757d',
                   marginTop: '0.25rem'
                 }}>
-                  Using high-quality AI voices with Web Speech fallback
+                  Using high-quality OpenAI voices
                 </div>
               </div>
 
@@ -637,7 +637,7 @@ function App() {
                           voice: selectedVoice,
                           speed: 0.9,
                           onStart: () => {
-                            setTtsStatus('🔊 Playing with AI voice...');
+                            setTtsStatus('🔊 Playing with OpenAI voice...');
                           },
                           onEnd: () => {
                             setIsPlaying(false);
@@ -653,14 +653,14 @@ function App() {
                           onError: (error) => {
                             console.error('TTS Error:', error);
                             setIsPlaying(false);
-                            setTtsStatus('⚠️ Falling back to system voice...');
+                            setTtsStatus('❌ Voice generation failed');
                           }
                         });
                       } catch (error) {
                         console.error('TTS Error:', error);
                         setIsPlaying(false);
                         setTtsStatus('');
-                        alert('Speech synthesis failed. Please try again.');
+                        alert('OpenAI voice generation failed. Please check your connection and try again.');
                       }
                     }
                   }}
@@ -673,7 +673,7 @@ function App() {
                   color: '#6c757d',
                   textAlign: 'center'
                 }}>
-                  {ttsStatus || (isPlaying ? '🔊 Playing...' : '🎧 Click to hear native pronunciation')}
+                  {ttsStatus || (isPlaying ? '🔊 Playing...' : '🎧 Click to hear high-quality AI voice')}
                 </div>
               </div>
             </div>

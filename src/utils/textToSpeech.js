@@ -267,11 +267,10 @@ export class OpenAITTSService {
   }
 }
 
-// Enhanced TTS Service with OpenAI primary and Web Speech fallback
+// Enhanced TTS Service using OpenAI TTS only
 export class EnhancedTTSService {
   constructor() {
     this.openaiTTS = new OpenAITTSService();
-    this.webSpeechTTS = new TextToSpeechService();
     this.isPlaying = false;
     this.currentService = null;
     this.isGenerating = false;
@@ -316,30 +315,29 @@ export class EnhancedTTSService {
     };
 
     try {
-      // Try OpenAI TTS first for premium quality
+      // Use OpenAI TTS only
       console.log('Attempting OpenAI TTS...');
       this.currentService = 'openai';
       await this.openaiTTS.speak(text, { 
         ...enhancedOptions,
         abortSignal: this.abortController.signal 
       });
-      return;
     } catch (error) {
       if (error.name === 'AbortError') {
         console.log('OpenAI TTS aborted');
         return;
       }
       
-      console.log('OpenAI TTS failed, falling back to Web Speech:', error);
+      console.error('OpenAI TTS failed:', error);
       
-      // Fallback to Web Speech API
-      try {
-        this.currentService = 'webspeech';
-        await this.webSpeechTTS.speak(text, enhancedOptions);
-      } catch (fallbackError) {
-        console.error('Both TTS services failed:', fallbackError);
-        throw fallbackError;
-      }
+      // Clean up states on failure
+      this.isGenerating = false;
+      this.isPlaying = false;
+      this.currentService = null;
+      this.abortController = null;
+      
+      // Rethrow the error to let the UI handle it
+      throw error;
     }
   }
 
@@ -353,17 +351,11 @@ export class EnhancedTTSService {
     this.isGenerating = false;
     this.isPlaying = false;
     
-    // Force stop both services to prevent multiple playbacks
+    // Stop OpenAI TTS service
     try {
       this.openaiTTS.stop();
     } catch (error) {
       console.log('Error stopping OpenAI TTS:', error);
-    }
-    
-    try {
-      this.webSpeechTTS.stop();
-    } catch (error) {
-      console.log('Error stopping Web Speech TTS:', error);
     }
     
     this.currentService = null;
@@ -372,16 +364,12 @@ export class EnhancedTTSService {
   pause() {
     if (this.currentService === 'openai') {
       this.openaiTTS.pause();
-    } else if (this.currentService === 'webspeech') {
-      this.webSpeechTTS.pause();
     }
   }
 
   resume() {
     if (this.currentService === 'openai') {
       this.openaiTTS.resume();
-    } else if (this.currentService === 'webspeech') {
-      this.webSpeechTTS.resume();
     }
   }
 }
